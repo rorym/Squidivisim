@@ -12,7 +12,7 @@
 //   NEO_GRB     Pixels are wired for GRB bitstream
 //   NEO_KHZ400  400 KHz bitstream (e.g. FLORA pixels)
 //   NEO_KHZ800  800 KHz bitstream (e.g. High Density LED strip)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, 10, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, 10, NEO_GRB + NEO_KHZ800);
 
 // Initalise the LSM303 Accelerometer
 /* Assign a unique ID to this sensor at the same time */
@@ -51,7 +51,7 @@ int floraLEDint = millis();
 // LED State for Flora onboard LED
 int floraLEDstate = LOW;
 
-// our RGB -> eye-recognized gamma color (not in use)
+// our RGB -> eye-recognized gamma color (uses too much ram)
 //byte gammatable[256];
 
 // Colour index
@@ -129,6 +129,9 @@ void setup() {
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'  
   
+  // Run a pattern on the RGB pixels to indicate initalisation
+  pixelRandomSweep();
+  
   /* Initalise the LSM303 Accelrometer sensor */
   if (!accel.begin()) {
     /* There was a problem detecting the LSM303 ... check your connections */
@@ -165,8 +168,9 @@ void setup() {
     colBlue[i] = i;
   }
   
-  // To indicate initalisation run a simple pattern across all pixels
-  //pixelRingSpin();
+  // Run another pattern to indicate startup complete
+  pixelRandomSweep();
+  
   Serial.println("Squidivism gloves booted");
   
 }
