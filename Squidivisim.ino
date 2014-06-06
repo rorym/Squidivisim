@@ -12,7 +12,8 @@
 //   NEO_GRB     Pixels are wired for GRB bitstream
 //   NEO_KHZ400  400 KHz bitstream (e.g. FLORA pixels)
 //   NEO_KHZ800  800 KHz bitstream (e.g. High Density LED strip)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, 10, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, 10, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pants = Adafruit_NeoPixel(23, 6, NEO_GRB + NEO_KHZ800);
 
 // Initalise the LSM303 Accelerometer
 /* Assign a unique ID to this sensor at the same time */
@@ -31,7 +32,7 @@ Adafruit_LSM303_Mag_Unified mag = Adafruit_LSM303_Mag_Unified(12345);
 const float Pi = 3.14159;
 
 // Movement Threshold
-int movementThreshold = 12;
+int movementThreshold = 15;
 
 // Max sensor readings for Smoothing
 const int smoothReadMax = 10;
@@ -123,14 +124,20 @@ void setup() {
   pinMode(floraLED, OUTPUT);
 
   // Set the strip brightness
-  strip.setBrightness(50);
+  strip.setBrightness(80);
+  pants.setBrightness(80);
   
   // Setup the strips by clearing them
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'  
   
+  // Setup the pants by clearning them
+  pants.begin();
+  pants.show();
+  
   // Run a pattern on the RGB pixels to indicate initalisation
   pixelRandomSweep();
+  pantsDanceRandom();
   
   /* Initalise the LSM303 Accelrometer sensor */
   if (!accel.begin()) {
@@ -170,6 +177,7 @@ void setup() {
   
   // Run another pattern to indicate startup complete
   pixelRandomSweep();
+  pantsDanceRandom();
   
   Serial.println("Squidivism gloves booted");
   
@@ -204,6 +212,31 @@ void colourFade(int nextRed, int nextGreen, int nextBlue) {
   }
 }
 
+void pantsFadePattern(int nextRed, int nextGreen, int nextBlue) {
+  // get the last colour of pixel 0
+  uint32_t lastColour = pants.getPixelColor(0);
+  
+  // Convert 32-Bit merged colours to R/G/B
+  int lastRed = (uint8_t)((lastColour & 0xFF0000) >> 16);
+  int lastGreen = (uint8_t)((lastColour & 0x00FF00) >> 8);
+  int lastBlue = (uint8_t)(lastColour & 0x0000FF);
+  
+  // fade each pixel between their previous and new colours
+  for (int c = 0 ; c <= 10 ; c++) {
+    int thisRed = ((lastRed * (10 - c)) + (nextRed * c)) / 20;
+    int thisGreen = ((lastGreen * (10 - c)) + (nextGreen * c)) / 20;
+    int thisBlue = ((lastBlue * (10 - c)) + (nextBlue * c)) / 20;
+    
+    for (int p = 0; p < strip.numPixels(); p++) {
+      // set this pixel to this colour
+      pants.setPixelColor(p,thisRed,thisGreen,thisBlue);
+    }
+    
+    // show the latest change to the pixel colours
+    pants.show();
+  }
+}
+
 // pixel random sweep pattern
 void pixelRandomSweep() {
   // generate some random values
@@ -225,9 +258,27 @@ void pixelRandomSweep() {
   //strip.show();
 }
 
+// Run a pattern down the pants
+void pantsDanceRandom() {
+  // generate some random values
+  int randRed = random(10,70);
+  int randGreen = random(11,70);
+  int randBlue = random(12,70);
+  
+  for (int p = 0; p < pants.numPixels(); p++) {
+    pants.setPixelColor(p,randRed,randGreen,randBlue);
+    pants.show();
+    // turn off the previous pixel if > 0
+    if (p > 0) {
+      pants.setPixelColor(p-1,0,0,0);
+    }
+    delay(10);
+  }
+}
+
 void loop() {
   //Serial.println("Loop started");
-  
+  /*
   // Blink the onboard LED every 500 ms
   if (millis() - floraLEDint > 500) {
     if (floraLEDstate == LOW) {
@@ -242,6 +293,7 @@ void loop() {
     // Set the interval ahead 1s
     floraLEDint = millis();
   }
+  */
   
   // Limit the intervals that we do LSM303 readings
   if (millis() - nextLSMcheck > 200) {
@@ -329,6 +381,7 @@ void loop() {
          
          // run the colour fade function
          colourFade(redX,greenY,blueZ);
+         pantsFadePattern(redX,greenY,blueZ);
          
          // Schedule the next pattern change
          nextAccelPattern = millis();
@@ -424,6 +477,7 @@ void loop() {
         colBlue[colIndex] = int(b);
         
         colourFade(colRed[colIndex],colGreen[colIndex],colBlue[colIndex]);
+        pantsFadePattern(colRed[colIndex],colGreen[colIndex],colBlue[colIndex]);
         
         colIndex++;
         
@@ -441,6 +495,7 @@ void loop() {
       for (int i = 0; i < colMemMax ; i++) {
         // Fade between the last colour and the next colour in the table
         colourFade(colRed[i],colGreen[i],colBlue[i]);
+        pantsFadePattern(colRed[i],colGreen[i],colBlue[i]);
       }
       
       Serial.println("Finished colour fades");
